@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Student Performance Analyzer</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div style="text-align:right; margin-bottom:10px;">
+    <button id="darkToggle">Toggle Dark Mode</button>
+</div>
+
+<div class="container">
+    <h2>Student Performance Analyzer</h2>
+
+    <div class="form-section">
+        <form action="/add" method="POST">
+            <input type="text" name="name" placeholder="Student Name" required>
+            <input type="number" name="physics" placeholder="Physics Marks" required>
+            <input type="number" name="chemistry" placeholder="Chemistry Marks" required>
+            <input type="number" name="math" placeholder="Math Marks" required>
+            <input type="number" name="cs" placeholder="Computer Science Marks" required>
+            <input type="number" name="english" placeholder="English Marks" required>
+            <button type="submit">Add Student</button>
+        </form>
+
+        <form action="/clear" method="POST" style="margin-top:10px; text-align:right;">
+            <button type="submit" style="background:#ef4444;">Clear All</button>
+        </form>
+    </div>
+
+    <div class="main-content">
+        <div class="table-section">
+            <table>
+                <tr>
+                    <th>Name</th>
+                    <th>Total</th>
+                    <th>%</th>
+                    <th>CGPA</th>
+                    <th>Grade</th>
+                </tr>
+                {% for s in students %}
+                <tr>
+                    <td>{{ s.name }}</td>
+                    <td>{{ s.total }}</td>
+                    <td>{{ s.percentage|round(2) }}</td>
+                    <td>{{ s.cgpa }}</td>
+                    <td>{{ s.grade }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+
+        <div class="leaderboard">
+            <h3>Leaderboard</h3>
+            <ol>
+                {% for s in students %}
+                    <li class="{% if loop.index == 1 %}gold{% elif loop.index == 2 %}silver{% elif loop.index == 3 %}bronze{% endif %}">
+                        {% if loop.index == 1 %}🏆
+                        {% elif loop.index == 2 %}🥈
+                        {% elif loop.index == 3 %}🥉
+                        {% else %}•
+                        {% endif %}
+                        {{ s.name }} - {{ s.percentage|round(2) }}%
+                    </li>
+                {% endfor %}
+            </ol>
+        </div>
+    </div>
+</div>
+
+<script>
+const toggle = document.getElementById("darkToggle");
+if(localStorage.getItem("dark-mode") === "true"){
+    document.body.classList.add("dark-mode");
+}
+toggle.addEventListener("click", () => {
+    document.body.classList.toggle("dark-mode");
+    localStorage.setItem("dark-mode", document.body.classList.contains("dark-mode"));
+});
+</script>
+
+</body>
+</html>
