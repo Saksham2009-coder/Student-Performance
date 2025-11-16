@@ -4,15 +4,12 @@ from flask import Flask, render_template, request, redirect, url_for, session
 from functools import wraps
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from flask_bcrypt import Bcrypt   # correct bcrypt import
+from werkzeug.security import generate_password_hash, check_password_hash   # bcrypt removed
 
 app = Flask(__name__)
 
 # Secret key
 app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey123")
-
-# bcrypt instance
-bcrypt = Bcrypt(app)
 
 # Rate limiter
 limiter = Limiter(
@@ -56,8 +53,8 @@ init_db()
 
 ADMIN_USERNAME = "Saksham"
 
-# bcrypt hash for password "8700986782"
-ADMIN_PASSWORD_HASH = b"$2b$12$9Hys6p7eJxLdIH8YjNXn8uOeN8zQ3cZlSA.9bNyUmDAgbxzIc/cgq"
+# new werkzeug hash for password "8700986782"
+ADMIN_PASSWORD_HASH = generate_password_hash("8700986782")
 
 
 def login_required(f):
@@ -74,10 +71,9 @@ def login_required(f):
 def login():
     if request.method == "POST":
         username = request.form["username"]
-        password = request.form["password"].encode()
+        password = request.form["password"]
 
-        # password check
-        if username == ADMIN_USERNAME and bcrypt.check_password_hash(ADMIN_PASSWORD_HASH, password):
+        if username == ADMIN_USERNAME and check_password_hash(ADMIN_PASSWORD_HASH, password):
             session["admin"] = True
             return redirect(url_for("home"))
 

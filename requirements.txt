@@ -1,4 +1,4 @@
 flask
-flask-bcrypt
-flask-limiter
+flask_limiter
 gunicorn
+werkzeug
