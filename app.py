@@ -1,18 +1,25 @@
 import os
 import sqlite3
-from flask import Flask, render_template, request, redirect, url_for, session, g
-from werkzeug.security import check_password_hash
-import bcrypt
+from flask import Flask, render_template, request, redirect, url_for, session
 from functools import wraps
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_bcrypt import Bcrypt   # correct bcrypt import
 
 app = Flask(__name__)
 
+# Secret key
 app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey123")
 
-# Rate limit (security)
-limiter = Limiter(get_remote_address, app=app, default_limits=["100 per hour"])
+# bcrypt instance
+bcrypt = Bcrypt(app)
+
+# Rate limiter
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["100 per hour"]
+)
 
 # ---------------------------
 # DATABASE SETUP
@@ -43,15 +50,15 @@ def init_db():
 
 init_db()
 
-
 # ---------------------------
 # LOGIN SYSTEM
 # ---------------------------
 
 ADMIN_USERNAME = "Saksham"
 
-# bcrypt hash for password: 8700986782
+# bcrypt hash for password "8700986782"
 ADMIN_PASSWORD_HASH = b"$2b$12$9Hys6p7eJxLdIH8YjNXn8uOeN8zQ3cZlSA.9bNyUmDAgbxzIc/cgq"
+
 
 def login_required(f):
     @wraps(f)
@@ -63,13 +70,14 @@ def login_required(f):
 
 
 @app.route("/login", methods=["GET", "POST"])
-@limiter.limit("5 per minute")  # Prevent brute-force attacks
+@limiter.limit("5 per minute")
 def login():
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"].encode()
 
-        if username == ADMIN_USERNAME and bcrypt.checkpw(password, ADMIN_PASSWORD_HASH):
+        # password check
+        if username == ADMIN_USERNAME and bcrypt.check_password_hash(ADMIN_PASSWORD_HASH, password):
             session["admin"] = True
             return redirect(url_for("home"))
 
@@ -83,7 +91,6 @@ def logout():
     session.clear()
     return redirect(url_for("login"))
 
-
 # ---------------------------
 # STUDENT SYSTEM
 # ---------------------------
@@ -93,12 +100,18 @@ def calculate_results(p, c, m, cs, e):
     percentage = (total / 500) * 100
     cgpa = min(round(total / 50, 2), 10)
 
-    if percentage >= 90: grade = "A+"
-    elif percentage >= 80: grade = "A"
-    elif percentage >= 70: grade = "B"
-    elif percentage >= 60: grade = "C"
-    elif percentage >= 50: grade = "D"
-    else: grade = "F"
+    if percentage >= 90:
+        grade = "A+"
+    elif percentage >= 80:
+        grade = "A"
+    elif percentage >= 70:
+        grade = "B"
+    elif percentage >= 60:
+        grade = "C"
+    elif percentage >= 50:
+        grade = "D"
+    else:
+        grade = "F"
 
     return total, percentage, cgpa, grade
 
@@ -110,6 +123,7 @@ def home():
     c = conn.cursor()
     students = c.execute("SELECT * FROM students ORDER BY percentage DESC").fetchall()
     conn.close()
+
     return render_template("index.html", students=students)
 
 
@@ -117,20 +131,22 @@ def home():
 @login_required
 def add_student():
     name = request.form.get("name").strip()
-    marks = [int(request.form.get(s) or 0) for s in ["physics","chemistry","math","cs","english"]]
+    marks = [int(request.form.get(s) or 0) for s in ["physics", "chemistry", "math", "cs", "english"]]
 
-    # Validation
     for mark in marks:
         if mark < 0 or mark > 100:
             return "<h3>Error: Marks must be between 0–100</h3><a href='/'>Go Back</a>"
 
-    p,c,m,cs,e = marks
-    total, percentage, cgpa, grade = calculate_results(p,c,m,cs,e)
+    p, c, m, cs, e = marks
+    total, percentage, cgpa, grade = calculate_results(p, c, m, cs, e)
 
     conn = sqlite3.connect(DB)
     c = conn.cursor()
-    c.execute("INSERT INTO students (name, physics, chemistry, math, cs, english, total, percentage, cgpa, grade) VALUES (?,?,?,?,?,?,?,?,?,?)",
-              (name, p, c, m, cs, e, total, percentage, cgpa, grade))
+    c.execute("""
+        INSERT INTO students (name, physics, chemistry, math, cs, english, total, percentage, cgpa, grade)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (name, p, c, m, cs, e, total, percentage, cgpa, grade))
+
     conn.commit()
     conn.close()
 
@@ -146,16 +162,18 @@ def clear_all():
     top = c.execute("SELECT * FROM students ORDER BY percentage DESC LIMIT 1").fetchone()
 
     c.execute("DELETE FROM students")
+
     if top:
         c.execute("""
             INSERT INTO students (name, physics, chemistry, math, cs, english, total, percentage, cgpa, grade)
-            VALUES (?,?,?,?,?,?,?,?,?,?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, top[1:])
 
     conn.commit()
     conn.close()
+
     return redirect(url_for("home"))
 
 
 if __name__ == "__main__":
-    app.run(debug=False, host="0.0.0.0", port=int(os.environ.get("PORT",5000)))
+    app.run(debug=False, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
