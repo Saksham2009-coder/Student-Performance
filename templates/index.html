@@ -1,57 +1,40 @@
-<<<<<<< HEAD
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Student Performance Analyzer</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
-<!-- Top Right Buttons -->
-<div style="text-align:right; margin-bottom:10px;">
-    <button id="darkToggle">Toggle Dark Mode</button>
-
-    {% if session.admin %}
-    <a href="/logout">
-        <button style="background:#ef4444; margin-left:10px;">Logout</button>
-    </a>
-    {% endif %}
-</div>
+<button id="darkToggle" class="dark-btn">Dark Mode</button>
 
 <div class="container">
 
-    <!-- Welcome Section -->
     <div class="welcome-section">
         <h1>Welcome to Student Performance Analyzer</h1>
-        <p>We help you track and analyze students' marks across all subjects. Add students, view leaderboard and rankings, and monitor performance at a glance.</p>
+        <p>Track student marks, leaderboard & performance chart.</p>
     </div>
 
-{% if session.admin %}
+    <form class="form" action="/add" method="POST">
+        <input type="text" name="name" placeholder="Name" required>
+        <input type="number" name="physics" placeholder="Physics" required>
+        <input type="number" name="chemistry" placeholder="Chemistry" required>
+        <input type="number" name="math" placeholder="Math" required>
+        <input type="number" name="cs" placeholder="CS" required>
+        <input type="number" name="english" placeholder="English" required>
 
-    <!-- Form Section -->
-    <div class="form-section">
-        <form action="/add" method="POST">
-            <input type="text" name="name" placeholder="Student Name" required>
-            <input type="number" name="physics" placeholder="Physics Marks" required>
-            <input type="number" name="chemistry" placeholder="Chemistry Marks" required>
-            <input type="number" name="math" placeholder="Math Marks" required>
-            <input type="number" name="cs" placeholder="Computer Science Marks" required>
-            <input type="number" name="english" placeholder="English Marks" required>
-            <button type="submit">Add Student</button>
-        </form>
+        <button type="submit" class="add-btn">Add / Update</button>
+    </form>
 
-        <form action="/clear" method="POST" style="margin-top:10px; text-align:right;">
-            <button type="submit" style="background:#ef4444;">Clear All</button>
-        </form>
-    </div>
+    <form action="/clear" method="POST">
+        <button class="clear-btn">Clear All (Keep Topper)</button>
+    </form>
 
-{% endif %}
-
-    <div class="main-content">
-        
-        <!-- Table Section -->
-        <div class="table-section">
+    <div class="main">
+        <div class="table-box">
+            <h2>Students</h2>
             <table>
                 <tr>
                     <th>Name</th>
@@ -60,6 +43,7 @@
                     <th>CGPA</th>
                     <th>Grade</th>
                 </tr>
+
                 {% for s in students %}
                 <tr>
                     <td>{{ s.name }}</td>
@@ -72,21 +56,19 @@
             </table>
         </div>
 
-        <!-- Leaderboard -->
-        <div class="leaderboard">
-            <h3>Leaderboard</h3>
-            <ol>
-                {% for s in students %}
-                    <li class="{% if loop.index == 1 %}gold{% elif loop.index == 2 %}silver{% elif loop.index == 3 %}bronze{% endif %}">
-                        {% if loop.index == 1 %}🏆
-                        {% elif loop.index == 2 %}🥈
-                        {% elif loop.index == 3 %}🥉
-                        {% else %}•
-                        {% endif %}
-                        {{ s.name }} - {{ s.percentage|round(2) }}%
-                    </li>
-                {% endfor %}
-            </ol>
+        <div class="side">
+            <div class="leaderboard">
+                <h2>Leaderboard</h2>
+                <ol>
+                    {% for s in students %}
+                        <li>{{ loop.index }}. {{ s.name }} - {{ s.percentage|round(2) }}%</li>
+                    {% endfor %}
+                </ol>
+            </div>
+
+            <div class="chart-box">
+                <canvas id="chartCanvas"></canvas>
+            </div>
         </div>
 
     </div>
@@ -95,101 +77,33 @@
 
 <script>
 const toggle = document.getElementById("darkToggle");
-if (localStorage.getItem("dark-mode") === "true") {
-    document.body.classList.add("dark-mode");
+if(localStorage.getItem("dark") === "1"){
+    document.body.classList.add("dark");
 }
-toggle.addEventListener("click", () => {
-    document.body.classList.toggle("dark-mode");
-    localStorage.setItem("dark-mode", document.body.classList.contains("dark-mode"));
-});
+toggle.onclick = () => {
+    document.body.classList.toggle("dark");
+    localStorage.setItem("dark", document.body.classList.contains("dark") ? "1" : "0");
+};
+
+async function loadChart(){
+    const res = await fetch("/data");
+    const j = await res.json();
+    const ctx = document.getElementById("chartCanvas").getContext("2d");
+
+    new Chart(ctx,{
+        type:"bar",
+        data:{
+            labels:j.labels,
+            datasets:[{
+                label:"Percentage",
+                data:j.percentages,
+                backgroundColor:"#60A5FA"
+            }]
+        }
+    })
+}
+loadChart();
 </script>
 
 </body>
 </html>
-=======
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Student Performance Analyzer</title>
-    <link rel="stylesheet" href="/static/style.css">
-</head>
-<body>
-
-<div style="text-align:right; margin-bottom:10px;">
-    <button id="darkToggle">Toggle Dark Mode</button>
-</div>
-
-<div class="container">
-    <h2>Student Performance Analyzer</h2>
-
-    <div class="form-section">
-        <form action="/add" method="POST">
-            <input type="text" name="name" placeholder="Student Name" required>
-            <input type="number" name="physics" placeholder="Physics Marks" required>
-            <input type="number" name="chemistry" placeholder="Chemistry Marks" required>
-            <input type="number" name="math" placeholder="Math Marks" required>
-            <input type="number" name="cs" placeholder="Computer Science Marks" required>
-            <input type="number" name="english" placeholder="English Marks" required>
-            <button type="submit">Add Student</button>
-        </form>
-
-        <form action="/clear" method="POST" style="margin-top:10px; text-align:right;">
-            <button type="submit" style="background:#ef4444;">Clear All</button>
-        </form>
-    </div>
-
-    <div class="main-content">
-        <div class="table-section">
-            <table>
-                <tr>
-                    <th>Name</th>
-                    <th>Total</th>
-                    <th>%</th>
-                    <th>CGPA</th>
-                    <th>Grade</th>
-                </tr>
-                {% for s in students %}
-                <tr>
-                    <td>{{ s.name }}</td>
-                    <td>{{ s.total }}</td>
-                    <td>{{ s.percentage|round(2) }}</td>
-                    <td>{{ s.cgpa }}</td>
-                    <td>{{ s.grade }}</td>
-                </tr>
-                {% endfor %}
-            </table>
-        </div>
-
-        <div class="leaderboard">
-            <h3>Leaderboard</h3>
-            <ol>
-                {% for s in students %}
-                    <li class="{% if loop.index == 1 %}gold{% elif loop.index == 2 %}silver{% elif loop.index == 3 %}bronze{% endif %}">
-                        {% if loop.index == 1 %}🏆
-                        {% elif loop.index == 2 %}🥈
-                        {% elif loop.index == 3 %}🥉
-                        {% else %}•
-                        {% endif %}
-                        {{ s.name }} - {{ s.percentage|round(2) }}%
-                    </li>
-                {% endfor %}
-            </ol>
-        </div>
-    </div>
-</div>
-
-<script>
-const toggle = document.getElementById("darkToggle");
-if(localStorage.getItem("dark-mode") === "true"){
-    document.body.classList.add("dark-mode");
-}
-toggle.addEventListener("click", () => {
-    document.body.classList.toggle("dark-mode");
-    localStorage.setItem("dark-mode", document.body.classList.contains("dark-mode"));
-});
-</script>
-
-</body>
-</html>
->>>>>>> 916f66dca1a4f31b96eb35d2e6f8689c88168a29
